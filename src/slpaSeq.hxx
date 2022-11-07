@@ -68,12 +68,13 @@ SlpaResult<K> slpaSeq(const G& x, const vector<K>* q, const SlpaOptions& o, FA f
   uniform_int_distribution<K> dis(0, 65535);
   auto fr = [&]() { return dis(rnd); };
   float t = measureDuration([&]() {
-    slpaInitialize(vcom, x);
+    if (q) splaInitializeFrom(vcom, x, *q);
+    else   slpaInitialize(vcom, x);
     for (l=0; l < min(o.maxIterations, K(LABELS-1));) {
       K n = slpaMoveIteration<STRICT>(vcs, vcout, vcom, x, ++l, fr, fa, fp);
       PRINTFD("slpaSeq(): l=%d, n=%d, N=%d, n/N=%f\n", l, n, N, float(n)/N);
       if (float(n)/N <= o.tolerance) break;
-    }
+    } ++l;
   }, o.repeat);
   slpaSortCommunities(vcom, l);
   return {slpaBestCommunities(vcom, l), l, t};

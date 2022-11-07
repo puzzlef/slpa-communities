@@ -76,6 +76,18 @@ inline void slpaInitialize(vector<Labelset<K, L>>& vcom, const G& x) {
 }
 
 
+/**
+ * Initialize communities from given initial communities.
+ * @param vcom community set each vertex belongs to (updated)
+ * @param x original graph
+ * @param q initial community each vertex belongs to
+ */
+template <class G, class K, size_t L>
+inline void splaInitializeFrom(vector<Labelset<K, L>>& vcom, const G& x, const vector<K>& q) {
+  x.forEachVertexKey([&](auto u) { vcom[u] = {q[u]}; });
+}
+
+
 
 
 // SLPA-CHOOSE-COMMUNITY
