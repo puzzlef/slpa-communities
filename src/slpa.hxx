@@ -18,8 +18,8 @@ using std::get;
 // SLPA-OPTIONS
 // ------------
 
-// Maximum community memberships per vertex.
-#define SLPA_MAX_MEMBERSHIP 8
+// Maximum community membership memory per vertex.
+#define SLPA_MEMORY 16
 
 
 struct SlpaOptions {
@@ -27,7 +27,7 @@ struct SlpaOptions {
   float tolerance;
   int   maxIterations;
 
-  SlpaOptions(int repeat=1, float tolerance=0.05, int maxIterations=20) :
+  SlpaOptions(int repeat=1, float tolerance=0.05, int maxIterations=100) :
   repeat(repeat), tolerance(tolerance), maxIterations(maxIterations) {}
 };
 
@@ -56,8 +56,8 @@ struct SlpaResult {
 // LABELSET
 // --------
 
-template <class K, class V, size_t L>
-using Labelset = array<pair<K, V>, L>;
+template <class K, size_t L>
+using Labelset = array<K, L>;
 
 
 
@@ -66,27 +66,13 @@ using Labelset = array<pair<K, V>, L>;
 // ---------------
 
 /**
- * Find the total edge weight of each vertex.
- * @param vtot total edge weight of each vertex (updated)
- * @param x original graph
- */
-template <class G, class V>
-void slpaVertexWeights(vector<V>& vtot, const G& x) {
-  x.forEachVertexKey([&](auto u) {
-    vtot[u] = V();
-    x.forEachEdge(u, [&](auto v, auto w) { vtot[u] += w; });
-  });
-}
-
-
-/**
  * Initialize communities such that each vertex is its own community.
  * @param vcom community set each vertex belongs to (updated)
  * @param x original graph
  */
-template <class G, class K, class V, size_t L>
-inline void slpaInitialize(vector<Labelset<K, V, L>>& vcom, const G& x) {
-  x.forEachVertexKey([&](auto u) { vcom[u] = {make_pair(u, V(1))}; });
+template <class G, class K, size_t L>
+inline void slpaInitialize(vector<Labelset<K, L>>& vcom, const G& x) {
+  x.forEachVertexKey([&](auto u) { vcom[u] = {u}; });
 }
 
 
@@ -103,15 +89,15 @@ inline void slpaInitialize(vector<Labelset<K, V, L>>& vcom, const G& x) {
  * @param v outgoing edge vertex
  * @param w outgoing edge weight
  * @param vcom community set each vertex belongs to
+ * @param l number of labels available
+ * @param fr random number generator
  */
-template <bool SELF=false, class K, class V, size_t L>
-inline void slpaScanCommunity(vector<K>& vcs, vector<V>& vcout, K u, K v, V w, const vector<Labelset<K, V, L>>& vcom) {
+template <bool SELF=false, class K, class V, size_t L, class FR>
+inline void slpaScanCommunity(vector<K>& vcs, vector<V>& vcout, K u, K v, V w, const vector<Labelset<K, L>>& vcom, K l, FR fr) {
   if (!SELF && u==v) return;
-  for (const auto& [c, b] : vcom[v]) {
-    if (!b) break;  // TODO? b -> c
-    if (!vcout[c]) vcs.push_back(c);
-    vcout[c] += w*b;
-  }
+  K c = vcom[v][fr() % l];
+  if (!vcout[c]) vcs.push_back(c);
+  vcout[c] += w;
 }
 
 
@@ -122,22 +108,12 @@ inline void slpaScanCommunity(vector<K>& vcs, vector<V>& vcout, K u, K v, V w, c
  * @param x original graph
  * @param u given vertex
  * @param vcom community set each vertex belongs to
+ * @param l number of labels available
+ * @param fr random number generator
  */
-template <bool SELF=false, class G, class K, class V, size_t L>
-inline void slpaScanCommunities(vector<K>& vcs, vector<V>& vcout, const G& x, K u, const vector<Labelset<K, V, L>>& vcom) {
-  x.forEachEdge(u, [&](auto v, auto w) { slpaScanCommunity<SELF>(vcs, vcout, u, v, w, vcom); });
-}
-
-
-/**
- * Sort communities scan data by total edge weight / belongingness.
- * @param vcs communities vertex u is linked to (updated)
- * @param vcout total edge weight from vertex u to community C (updated)
- */
-template <class K, class V>
-inline void slpaSortScan(vector<K>& vcs, const vector<V>& vcout) {
-  auto fl = [&](auto c, auto d) { return vcout[c] > vcout[d]; };
-  sortValues(vcs, fl);
+template <bool SELF=false, class G, class K, class V, size_t L, class FR>
+inline void slpaScanCommunities(vector<K>& vcs, vector<V>& vcout, const G& x, K u, const vector<Labelset<K, L>>& vcom, K l, FR fr) {
+  x.forEachEdge(u, [&](auto v, auto w) { slpaScanCommunity<SELF>(vcs, vcout, u, v, w, vcom, l, fr); });
 }
 
 
@@ -158,78 +134,19 @@ inline void slpaClearScan(vector<K>& vcs, vector<V>& vcout) {
  * Choose connected community with most weight.
  * @param x original graph
  * @param u given vertex
- * @param vcom community each vertex belongs to
  * @param vcs communities vertex u is linked to
  * @param vcout total edge weight from vertex u to community C
- * @param W edge weight threshold above which communities are chosen
- * @returns [best community, best edge weight to community]
+ * @returns best community
  */
-template <class G, class K, class V, size_t L>
-inline Labelset<K, V, L> slpaChooseCommunity(const G& x, K u, const vector<Labelset<K, V, L>>& vcom, const vector<K>& vcs, const vector<V>& vcout, V W) {
-  K n = K(); V w = V();
-  Labelset<K, V, L> labs;
-  // 1. Find labels above threshold, or best below threshold.
+template <bool STRICT=false, class G, class K, class V>
+inline K slpaChooseCommunity(const G& x, K u, const vector<K>& vcs, const vector<V>& vcout) {
+  K cmax = K();
+  V wmax = V();
   for (K c : vcs) {
-    if (n>K() && vcout[c]<W) break;
-    labs[n++] = {c, vcout[c]};
-    w += vcout[c];
+    // Do some basic randomization if multiple labels have max weight.
+    if (vcout[c]>wmax || (!STRICT && vcout[c]==wmax && (c & 2))) { cmax = c; wmax = vcout[c]; }
   }
-  // 2. Normalize labels, such that belonging coefficient sums to 1.
-  for (K i=0; i<n; ++i)
-    labs[i].second /= w;
-  if (!n) labs[0] = make_pair(u, V(1));
-  return labs;
-}
-
-
-
-
-// SLPA-COUNT-COMMUNITIES
-// ----------------------
-
-/**
- * Count number of vertices belonging to each community.
- * @param gcs list of communities (updated)
- * @param gcnum number of vertices belonging to respective community (updated)
- * @param x original graph
- * @param vcom community set each vertex belongs to
- */
-template <class G, class K, class V, size_t L>
-inline void slpaCountCommunities(vector<K>& gcs, vector<K>& gcnum, const G& x, const vector<Labelset<K, V, L>>& vcom) {
-  x.forEachVertexKey([&](auto u) {
-    for (const auto& [c, b] : vcom[u]) {
-      if (!b) break;
-      if (!gcnum[c]) gcs.push_back(c);
-      ++gcnum[c];
-    }
-  });
-}
-
-
-/**
- * Clear communities count data.
- * @param gcs list of communities (updated)
- * @param gcnum number of vertices belonging to respective community (updated)
- */
-template <class K>
-inline void slpaClearCount(vector<K>& gcs, vector<K>& gcnum) {
-  for (K c : gcs)
-    gcnum[c] = K();
-  gcs.clear();
-}
-
-
-/**
- * Get minimum community count.
- * @param gcs list of communities (updated)
- * @param gcnum number of vertices belonging to respective community (updated)
- */
-template <class K>
-inline K slpaMinCount(vector<K> gcs, vector<K>& gcnum) {
-  K min = numeric_limits<K>::max();
-  for (K c : gcs)
-    min = min <= gcnum[c]? min : gcnum[c];
-  return min;
+  return cmax;
 }
 
 
@@ -238,12 +155,30 @@ inline K slpaMinCount(vector<K> gcs, vector<K>& gcnum) {
 // SLPA-BEST-COMMUNITIES
 // ---------------------
 
-template <class K, class V, size_t L>
-inline vector<K> slpaBestCommunities(const vector<Labelset<K, V, L>>& vcom) {
+template <class K, size_t L>
+inline void slpaSortCommunities(vector<Labelset<K, L>>& vcom, K l) {
   K S = vcom.size();
   vector<K> a(S);
-  for (size_t i=0; i<S; ++i)
-    a[i] = vcom[i][0].first;
+  for (K u=0; u<S; ++u) {
+    auto ib = vcom[u].begin();
+    auto ie = vcom[u].begin() + l;
+    sort_values(ib, ie);
+  }
+}
+
+
+template <class K, size_t L>
+inline void slpaBestCommunity(const Labelset<K, L>& labs, K l) {
+  return most_frequent(labs.begin(), labs.begin()+l);
+}
+
+
+template <class K, size_t L>
+inline vector<K> slpaBestCommunities(const vector<Labelset<K, L>>& vcom, K l) {
+  K S = vcom.size();
+  vector<K> a(S);
+  for (K u=0; u<S; ++u)
+    a[u] = slpaBestCommunity(vcom[u], l);
   return a;
 }
 
@@ -265,18 +200,18 @@ inline vector<K> slpaBestCommunities(const vector<Labelset<K, V, L>>& vcom) {
  * @param deletions edge deletions for this batch update (undirected, sorted by source vertex id)
  * @param insertions edge insertions for this batch update (undirected, sorted by source vertex id)
  * @param vcom community set each vertex belongs to
- * @param vtot total edge weight of each vertex
- * @param B belonging coefficient threshold
+ * @param l number of labels available
+ * @param fr random number generator
  * @returns flags for each vertex marking whether it is affected
  */
-template <class FLAG=bool, class G, class K, class V, size_t L>
-auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, V, L>>& vcom, const vector<V>& vtot, V B) {
+template <bool STRICT=false, class FLAG=bool, class G, class K, class V, size_t L, class FR>
+auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, L>>& vcom, K l, FR fr) {
   K S = x.span();
   vector<K> vcs; vector<V> vcout(S);
   vector<FLAG> vertices(S), neighbors(S), communities(S);
   for (const auto& [u, v] : deletions) {
-    K cu = vcom[u][0].first;
-    K cv = vcom[v][0].first;
+    K cu = slpaBestCommunity(vcom[u], l);
+    K cv = slpaBestCommunity(vcom[v], l);
     if (cu!=cv) continue;
     vertices[u]  = true;
     neighbors[u] = true;
@@ -288,21 +223,20 @@ auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& d
     for (; i<insertions.size() && get<0>(insertions[i])==u; ++i) {
       K v  = get<1>(insertions[i]);
       V w  = get<2>(insertions[i]);
-      K cu = vcom[u][0].first;
-      K cv = vcom[v][0].first;
+      K cu = slpaBestCommunity(vcom[u], l);
+      K cv = slpaBestCommunity(vcom[v], l);
       if (cu==cv) continue;
-      slpaScanCommunity(vcs, vcout, u, v, w, vcom);
+      slpaScanCommunity(vcs, vcout, u, v, w, vcom, l, fr);
     }
-    auto labs = slpaChooseCommunity(x, u, vcom, vcs, vcout, B*vtot[u]);
-    K cu = vcom[u][0].first;
-    K cl = labs[0].first;
+    K cl = slpaChooseCommunity<STRICT>(x, u, vcom, vcs, vcout);
+    K cu = slpaBestCommunity(vcom[u], l);
     if (cl==cu) continue;
     vertices[u]  = true;
     neighbors[u] = true;
     communities[cl] = true;
   }
   x.forEachVertexKey([&](auto u) {
-    K cu = vcom[u][0].first;
+    K cu = slpaBestCommunity(vcom[u], l);
     if (neighbors[u]) x.forEachEdgeKey(u, [&](auto v) { vertices[v] = true; });
     if (communities[cu]) vertices[u] = true;
   });
@@ -328,21 +262,23 @@ auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& d
  * @param deletions edge deletions for this batch update (undirected, sorted by source vertex id)
  * @param insertions edge insertions for this batch update (undirected, sorted by source vertex id)
  * @param vcom community set each vertex belongs to
+ * @param l number of labels available
+ * @param fr random number generator
  * @returns flags for each vertex marking whether it is affected
  */
-template <class FLAG=bool, class G, class K, class V, size_t L>
-auto slpaAffectedVerticesFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, V, L>>& vcom) {
+template <class FLAG=bool, class G, class K, class V, size_t L, class FR>
+auto slpaAffectedVerticesFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, L>>& vcom, K l, FR fr) {
   K S = x.span();
   vector<FLAG> vertices(S);
   for (const auto& [u, v] : deletions) {
-    K cu = vcom[u][0].first;
-    K cv = vcom[v][0].first;
+    K cu = slpaBestCommunity(vcom[u], l);
+    K cv = slpaBestCommunity(vcom[v], l);
     if (cu!=cv) continue;
     vertices[u] = true;
   }
   for (const auto& [u, v, w] : insertions) {
-    K cu = vcom[u][0].first;
-    K cv = vcom[v][0].first;
+    K cu = slpaBestCommunity(vcom[u], l);
+    K cv = slpaBestCommunity(vcom[v], l);
     if (cu==cv) continue;
     vertices[u] = true;
   }
