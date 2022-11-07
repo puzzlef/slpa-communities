@@ -15,5 +15,5 @@
 #include "properties.hxx"
 #include "modularity.hxx"
 #include "random.hxx"
-#include "copra.hxx"
-#include "copraSeq.hxx"
+#include "slpa.hxx"
+#include "slpaSeq.hxx"

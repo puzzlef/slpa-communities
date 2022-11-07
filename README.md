@@ -1,6 +1,8 @@
 Single-threaded CPU-based Community OVerlap PRopagation Algorithm ([COPRA]) for
 [community detection].
 
+`TODO`
+
 This is an implementation of a label-propagation based community detection
 algorithm called **Community OVerlap PRopagation Algorithm (COPRA)**. Unlike
 **RAK**, this algorithm uses *multiple labels per vertex*, with each label having an

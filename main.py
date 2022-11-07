@@ -1,7 +1,7 @@
-# https://www.kaggle.com/wolfram77/puzzlef-copra-communities-seq
+# https://www.kaggle.com/wolfram77/puzzlef-slpa-communities-seq
 import os
 from IPython.display import FileLink
-src="copra-communities-seq"
+src="slpa-communities-seq"
 inp="/kaggle/input/graphs"
 out="{}.txt".format(src)
 !printf "" > "$out"
