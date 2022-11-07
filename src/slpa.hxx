@@ -15,38 +15,38 @@ using std::get;
 
 
 
-// COPRA-OPTIONS
-// -------------
+// SLPA-OPTIONS
+// ------------
 
 // Maximum community memberships per vertex.
-#define COPRA_MAX_MEMBERSHIP 8
+#define SLPA_MAX_MEMBERSHIP 8
 
 
-struct CopraOptions {
+struct SlpaOptions {
   int   repeat;
   float tolerance;
   int   maxIterations;
 
-  CopraOptions(int repeat=1, float tolerance=0.05, int maxIterations=20) :
+  SlpaOptions(int repeat=1, float tolerance=0.05, int maxIterations=20) :
   repeat(repeat), tolerance(tolerance), maxIterations(maxIterations) {}
 };
 
 
 
 
-// COPRA-RESULT
-// ------------
+// SLPA-RESULT
+// -----------
 
 template <class K>
-struct CopraResult {
+struct SlpaResult {
   vector<K> membership;
   int   iterations;
   float time;
 
-  CopraResult(vector<K>&& membership, int iterations=0, float time=0) :
+  SlpaResult(vector<K>&& membership, int iterations=0, float time=0) :
   membership(membership), iterations(iterations), time(time) {}
 
-  CopraResult(vector<K>& membership, int iterations=0, float time=0) :
+  SlpaResult(vector<K>& membership, int iterations=0, float time=0) :
   membership(move(membership)), iterations(iterations), time(time) {}
 };
 
@@ -62,8 +62,8 @@ using Labelset = array<pair<K, V>, L>;
 
 
 
-// COPRA-INITIALIZE
-// ----------------
+// SLPA-INITIALIZE
+// ---------------
 
 /**
  * Find the total edge weight of each vertex.
@@ -71,7 +71,7 @@ using Labelset = array<pair<K, V>, L>;
  * @param x original graph
  */
 template <class G, class V>
-void copraVertexWeights(vector<V>& vtot, const G& x) {
+void slpaVertexWeights(vector<V>& vtot, const G& x) {
   x.forEachVertexKey([&](auto u) {
     vtot[u] = V();
     x.forEachEdge(u, [&](auto v, auto w) { vtot[u] += w; });
@@ -85,15 +85,15 @@ void copraVertexWeights(vector<V>& vtot, const G& x) {
  * @param x original graph
  */
 template <class G, class K, class V, size_t L>
-inline void copraInitialize(vector<Labelset<K, V, L>>& vcom, const G& x) {
+inline void slpaInitialize(vector<Labelset<K, V, L>>& vcom, const G& x) {
   x.forEachVertexKey([&](auto u) { vcom[u] = {make_pair(u, V(1))}; });
 }
 
 
 
 
-// COPRA-CHOOSE-COMMUNITY
-// ----------------------
+// SLPA-CHOOSE-COMMUNITY
+// ---------------------
 
 /**
  * Scan an edge community connected to a vertex.
@@ -105,7 +105,7 @@ inline void copraInitialize(vector<Labelset<K, V, L>>& vcom, const G& x) {
  * @param vcom community set each vertex belongs to
  */
 template <bool SELF=false, class K, class V, size_t L>
-inline void copraScanCommunity(vector<K>& vcs, vector<V>& vcout, K u, K v, V w, const vector<Labelset<K, V, L>>& vcom) {
+inline void slpaScanCommunity(vector<K>& vcs, vector<V>& vcout, K u, K v, V w, const vector<Labelset<K, V, L>>& vcom) {
   if (!SELF && u==v) return;
   for (const auto& [c, b] : vcom[v]) {
     if (!b) break;  // TODO? b -> c
@@ -124,8 +124,8 @@ inline void copraScanCommunity(vector<K>& vcs, vector<V>& vcout, K u, K v, V w, 
  * @param vcom community set each vertex belongs to
  */
 template <bool SELF=false, class G, class K, class V, size_t L>
-inline void copraScanCommunities(vector<K>& vcs, vector<V>& vcout, const G& x, K u, const vector<Labelset<K, V, L>>& vcom) {
-  x.forEachEdge(u, [&](auto v, auto w) { copraScanCommunity<SELF>(vcs, vcout, u, v, w, vcom); });
+inline void slpaScanCommunities(vector<K>& vcs, vector<V>& vcout, const G& x, K u, const vector<Labelset<K, V, L>>& vcom) {
+  x.forEachEdge(u, [&](auto v, auto w) { slpaScanCommunity<SELF>(vcs, vcout, u, v, w, vcom); });
 }
 
 
@@ -135,7 +135,7 @@ inline void copraScanCommunities(vector<K>& vcs, vector<V>& vcout, const G& x, K
  * @param vcout total edge weight from vertex u to community C (updated)
  */
 template <class K, class V>
-inline void copraSortScan(vector<K>& vcs, const vector<V>& vcout) {
+inline void slpaSortScan(vector<K>& vcs, const vector<V>& vcout) {
   auto fl = [&](auto c, auto d) { return vcout[c] > vcout[d]; };
   sortValues(vcs, fl);
 }
@@ -147,7 +147,7 @@ inline void copraSortScan(vector<K>& vcs, const vector<V>& vcout) {
  * @param vcout total edge weight from vertex u to community C (updated)
  */
 template <class K, class V>
-inline void copraClearScan(vector<K>& vcs, vector<V>& vcout) {
+inline void slpaClearScan(vector<K>& vcs, vector<V>& vcout) {
   for (K c : vcs)
     vcout[c] = V();
   vcs.clear();
@@ -165,7 +165,7 @@ inline void copraClearScan(vector<K>& vcs, vector<V>& vcout) {
  * @returns [best community, best edge weight to community]
  */
 template <class G, class K, class V, size_t L>
-inline Labelset<K, V, L> copraChooseCommunity(const G& x, K u, const vector<Labelset<K, V, L>>& vcom, const vector<K>& vcs, const vector<V>& vcout, V W) {
+inline Labelset<K, V, L> slpaChooseCommunity(const G& x, K u, const vector<Labelset<K, V, L>>& vcom, const vector<K>& vcs, const vector<V>& vcout, V W) {
   K n = K(); V w = V();
   Labelset<K, V, L> labs;
   // 1. Find labels above threshold, or best below threshold.
@@ -184,8 +184,8 @@ inline Labelset<K, V, L> copraChooseCommunity(const G& x, K u, const vector<Labe
 
 
 
-// COPRA-COUNT-COMMUNITIES
-// -----------------------
+// SLPA-COUNT-COMMUNITIES
+// ----------------------
 
 /**
  * Count number of vertices belonging to each community.
@@ -195,7 +195,7 @@ inline Labelset<K, V, L> copraChooseCommunity(const G& x, K u, const vector<Labe
  * @param vcom community set each vertex belongs to
  */
 template <class G, class K, class V, size_t L>
-inline void copraCountCommunities(vector<K>& gcs, vector<K>& gcnum, const G& x, const vector<Labelset<K, V, L>>& vcom) {
+inline void slpaCountCommunities(vector<K>& gcs, vector<K>& gcnum, const G& x, const vector<Labelset<K, V, L>>& vcom) {
   x.forEachVertexKey([&](auto u) {
     for (const auto& [c, b] : vcom[u]) {
       if (!b) break;
@@ -212,7 +212,7 @@ inline void copraCountCommunities(vector<K>& gcs, vector<K>& gcnum, const G& x, 
  * @param gcnum number of vertices belonging to respective community (updated)
  */
 template <class K>
-inline void copraClearCount(vector<K>& gcs, vector<K>& gcnum) {
+inline void slpaClearCount(vector<K>& gcs, vector<K>& gcnum) {
   for (K c : gcs)
     gcnum[c] = K();
   gcs.clear();
@@ -225,7 +225,7 @@ inline void copraClearCount(vector<K>& gcs, vector<K>& gcnum) {
  * @param gcnum number of vertices belonging to respective community (updated)
  */
 template <class K>
-inline K copraMinCount(vector<K> gcs, vector<K>& gcnum) {
+inline K slpaMinCount(vector<K> gcs, vector<K>& gcnum) {
   K min = numeric_limits<K>::max();
   for (K c : gcs)
     min = min <= gcnum[c]? min : gcnum[c];
@@ -235,11 +235,11 @@ inline K copraMinCount(vector<K> gcs, vector<K>& gcnum) {
 
 
 
-// COPRA-BEST-COMMUNITIES
-// ----------------------
+// SLPA-BEST-COMMUNITIES
+// ---------------------
 
 template <class K, class V, size_t L>
-inline vector<K> copraBestCommunities(const vector<Labelset<K, V, L>>& vcom) {
+inline vector<K> slpaBestCommunities(const vector<Labelset<K, V, L>>& vcom) {
   K S = vcom.size();
   vector<K> a(S);
   for (size_t i=0; i<S; ++i)
@@ -250,8 +250,8 @@ inline vector<K> copraBestCommunities(const vector<Labelset<K, V, L>>& vcom) {
 
 
 
-// COPRA-AFFECTED-VERTICES-DELTA-SCREENING
-// ---------------------------------------
+// SLPA-AFFECTED-VERTICES-DELTA-SCREENING
+// --------------------------------------
 // Using delta-screening approach.
 // - All edge batches are undirected, and sorted by source vertex-id.
 // - For edge additions across communities with source vertex `i` and highest modularity changing edge vertex `j*`,
@@ -270,7 +270,7 @@ inline vector<K> copraBestCommunities(const vector<Labelset<K, V, L>>& vcom) {
  * @returns flags for each vertex marking whether it is affected
  */
 template <class FLAG=bool, class G, class K, class V, size_t L>
-auto copraAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, V, L>>& vcom, const vector<V>& vtot, V B) {
+auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, V, L>>& vcom, const vector<V>& vtot, V B) {
   K S = x.span();
   vector<K> vcs; vector<V> vcout(S);
   vector<FLAG> vertices(S), neighbors(S), communities(S);
@@ -284,16 +284,16 @@ auto copraAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& 
   }
   for (size_t i=0; i<insertions.size();) {
     K u = get<0>(insertions[i]);
-    copraClearScan(vcs, vcout);
+    slpaClearScan(vcs, vcout);
     for (; i<insertions.size() && get<0>(insertions[i])==u; ++i) {
       K v  = get<1>(insertions[i]);
       V w  = get<2>(insertions[i]);
       K cu = vcom[u][0].first;
       K cv = vcom[v][0].first;
       if (cu==cv) continue;
-      copraScanCommunity(vcs, vcout, u, v, w, vcom);
+      slpaScanCommunity(vcs, vcout, u, v, w, vcom);
     }
-    auto labs = copraChooseCommunity(x, u, vcom, vcs, vcout, B*vtot[u]);
+    auto labs = slpaChooseCommunity(x, u, vcom, vcs, vcout, B*vtot[u]);
     K cu = vcom[u][0].first;
     K cl = labs[0].first;
     if (cl==cu) continue;
@@ -312,8 +312,8 @@ auto copraAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& 
 
 
 
-// COPRA-AFFECTED-VERTICES-FRONTIER
-// --------------------------------
+// SLPA-AFFECTED-VERTICES-FRONTIER
+// -------------------------------
 // Using frontier based approach.
 // - All source and destination vertices are marked as affected for insertions and deletions.
 // - For edge additions across communities with source vertex `i` and destination vertex `j`,
@@ -331,7 +331,7 @@ auto copraAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& 
  * @returns flags for each vertex marking whether it is affected
  */
 template <class FLAG=bool, class G, class K, class V, size_t L>
-auto copraAffectedVerticesFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, V, L>>& vcom) {
+auto slpaAffectedVerticesFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, V, L>>& vcom) {
   K S = x.span();
   vector<FLAG> vertices(S);
   for (const auto& [u, v] : deletions) {
