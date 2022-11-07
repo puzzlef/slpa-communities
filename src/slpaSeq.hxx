@@ -12,8 +12,6 @@
 using std::tuple;
 using std::vector;
 using std::random_device;
-using std::default_random_engine;
-using std::uniform_int_distribution;
 using std::make_pair;
 using std::swap;
 using std::min;
@@ -64,9 +62,8 @@ SlpaResult<K> slpaSeq(const G& x, const vector<K>* q, const SlpaOptions& o, FA f
   vector<V> vcout(S);
   vector<Labelset<K, L>> vcom(S);
   random_device dev;
-  default_random_engine rnd(dev());
-  uniform_int_distribution<K> dis(0, 65535);
-  auto fr = [&]() { return dis(rnd); };
+  xorshift32_engine rnd(dev());
+  auto fr = [&]() { return rnd(); };
   float t = measureDuration([&]() {
     if (q) slpaInitializeFrom(vcom, x, *q);
     else   slpaInitialize(vcom, x);
