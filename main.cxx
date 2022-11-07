@@ -35,43 +35,41 @@ void runExperiment(const G& x, int repeat) {
   printf("[%01.6f modularity] noop\n", Q);
   SlpaOptions o = {repeat};
 
-  for (int i=0, f=10; f<=10000; f*=i&1? 5:2, ++i) {
-    float tolerance = 1.0f / f;
-    {
-      // Find SLPA using a single thread (4 labels, non-strict).
-      auto ak = slpaSeqStatic<4, false>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 4, tolerance);
-      auto al = slpaSeqStatic<4, true>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 4, tolerance);
-    }
-    {
-      // Find SLPA using a single thread (8 labels, non-strict).
-      auto ak = slpaSeqStatic<8, false>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 8, tolerance);
-      auto al = slpaSeqStatic<8, true>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 8, tolerance);
-    }
-    {
-      // Find SLPA using a single thread (16 labels, non-strict).
-      auto ak = slpaSeqStatic<16, false>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 16, tolerance);
-      auto al = slpaSeqStatic<16, true>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 16, tolerance);
-    }
-    {
-      // Find SLPA using a single thread (32 labels).
-      auto ak = slpaSeqStatic<32, false>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 32, tolerance);
-      auto al = slpaSeqStatic<32, true>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 32, tolerance);
-    }
-    {
-      // Find SLPA using a single thread (64 labels).
-      auto ak = slpaSeqStatic<64, false>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 64, tolerance);
-      auto al = slpaSeqStatic<64, true>(x, init, {repeat, tolerance});
-      printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 64, tolerance);
-    }
+  float tolerance = 0.05f;
+  {
+    // Find SLPA using a single thread (4 labels).
+    auto ak = slpaSeqStatic<4, false>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 4, tolerance);
+    auto al = slpaSeqStatic<4, true>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 4, tolerance);
+  }
+  {
+    // Find SLPA using a single thread (8 labels).
+    auto ak = slpaSeqStatic<8, false>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 8, tolerance);
+    auto al = slpaSeqStatic<8, true>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 8, tolerance);
+  }
+  {
+    // Find SLPA using a single thread (16 labels).
+    auto ak = slpaSeqStatic<16, false>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 16, tolerance);
+    auto al = slpaSeqStatic<16, true>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 16, tolerance);
+  }
+  {
+    // Find SLPA using a single thread (32 labels).
+    auto ak = slpaSeqStatic<32, false>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 32, tolerance);
+    auto al = slpaSeqStatic<32, true>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 32, tolerance);
+  }
+  {
+    // Find SLPA using a single thread (64 labels).
+    auto ak = slpaSeqStatic<64, false>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStatic       {labels=%02d, tolerance=%.0e}\n", ak.time, ak.iterations, getModularity(x, ak, M), 64, tolerance);
+    auto al = slpaSeqStatic<64, true>(x, init, {repeat, tolerance});
+    printf("[%09.3f ms; %04d iters.; %01.9f modularity] slpaSeqStaticStrict {labels=%02d, tolerance=%.0e}\n", al.time, al.iterations, getModularity(x, al, M), 64, tolerance);
   }
 }
 
