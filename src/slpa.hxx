@@ -83,7 +83,7 @@ inline void slpaInitialize(vector<Labelset<K, L>>& vcom, const G& x) {
  * @param q initial community each vertex belongs to
  */
 template <class G, class K, size_t L>
-inline void splaInitializeFrom(vector<Labelset<K, L>>& vcom, const G& x, const vector<K>& q) {
+inline void slpaInitializeFrom(vector<Labelset<K, L>>& vcom, const G& x, const vector<K>& q) {
   x.forEachVertexKey([&](auto u) { vcom[u] = {q[u]}; });
 }
 
@@ -92,6 +92,24 @@ inline void splaInitializeFrom(vector<Labelset<K, L>>& vcom, const G& x, const v
 
 // SLPA-CHOOSE-COMMUNITY
 // ---------------------
+
+/**
+ * Scan an initial edge community connected to a vertex.
+ * @param vcs communities vertex u is linked to (updated)
+ * @param vcout total edge weight from vertex u to community C (updated)
+ * @param u given vertex
+ * @param v outgoing edge vertex
+ * @param w outgoing edge weight
+ * @param q community each vertex belongs to
+ */
+template <bool SELF=false, class K, class V>
+inline void slpaScanInitialCommunity(vector<K>& vcs, vector<V>& vcout, K u, K v, V w, const vector<K>& q) {
+  if (!SELF && u==v) return;
+  K c = q[v];
+  if (!vcout[c]) vcs.push_back(c);
+  vcout[c] += w;
+}
+
 
 /**
  * Scan an edge community connected to a vertex.
@@ -211,45 +229,39 @@ inline vector<K> slpaBestCommunities(const vector<Labelset<K, L>>& vcom, K l) {
  * @param x original graph
  * @param deletions edge deletions for this batch update (undirected, sorted by source vertex id)
  * @param insertions edge insertions for this batch update (undirected, sorted by source vertex id)
- * @param vcom community set each vertex belongs to (sorted)
- * @param l number of labels available
- * @param fr random number generator
+ * @param q community each vertex belongs to
  * @returns flags for each vertex marking whether it is affected
  */
 template <bool STRICT=false, class FLAG=bool, class G, class K, class V, size_t L, class FR>
-auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, L>>& vcom, K l, FR fr) {
+auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<K>& q) {
   K S = x.span();
   vector<K> vcs; vector<V> vcout(S);
   vector<FLAG> vertices(S), neighbors(S), communities(S);
+  auto fr = []() { return 0; };
   for (const auto& [u, v] : deletions) {
-    K cu = slpaBestCommunity(vcom[u], l);
-    K cv = slpaBestCommunity(vcom[v], l);
-    if (cu!=cv) continue;
+    if (q[u]!=q[v]) continue;
     vertices[u]  = true;
     neighbors[u] = true;
-    communities[cv] = true;
+    communities[q[v]] = true;
   }
   for (size_t i=0; i<insertions.size();) {
     K u  = get<0>(insertions[i]);
-    K cu = slpaBestCommunity(vcom[u], l);
     slpaClearScan(vcs, vcout);
     for (; i<insertions.size() && get<0>(insertions[i])==u; ++i) {
       K v  = get<1>(insertions[i]);
       V w  = get<2>(insertions[i]);
-      K cv = slpaBestCommunity(vcom[v], l);
-      if (cu==cv) continue;
-      slpaScanCommunity(vcs, vcout, u, v, w, vcom, l, fr);
+      if (q[u]==q[v]) continue;
+      slpaScanInitialCommunity(vcs, vcout, u, v, w, q);
     }
     K cl = slpaChooseCommunity<STRICT>(vcs, vcout);
-    if (cl==cu) continue;
+    if (cl==q[u]) continue;
     vertices[u]  = true;
     neighbors[u] = true;
     communities[cl] = true;
   }
   x.forEachVertexKey([&](auto u) {
-    K cu = slpaBestCommunity(vcom[u], l);
     if (neighbors[u]) x.forEachEdgeKey(u, [&](auto v) { vertices[v] = true; });
-    if (communities[cu]) vertices[u] = true;
+    if (communities[q[u]]) vertices[u] = true;
   });
   return vertices;
 }
@@ -272,24 +284,19 @@ auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& d
  * @param x original graph
  * @param deletions edge deletions for this batch update (undirected, sorted by source vertex id)
  * @param insertions edge insertions for this batch update (undirected, sorted by source vertex id)
- * @param vcom community set each vertex belongs to (sorted)
- * @param l number of labels available
+ * @param q community each vertex belongs to
  * @returns flags for each vertex marking whether it is affected
  */
 template <class FLAG=bool, class G, class K, class V, size_t L, class FR>
-auto slpaAffectedVerticesFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, L>>& vcom, K l) {
+auto slpaAffectedVerticesFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<K>& q) {
   K S = x.span();
   vector<FLAG> vertices(S);
   for (const auto& [u, v] : deletions) {
-    K cu = slpaBestCommunity(vcom[u], l);
-    K cv = slpaBestCommunity(vcom[v], l);
-    if (cu!=cv) continue;
+    if (q[u]!=q[v]) continue;
     vertices[u] = true;
   }
   for (const auto& [u, v, w] : insertions) {
-    K cu = slpaBestCommunity(vcom[u], l);
-    K cv = slpaBestCommunity(vcom[v], l);
-    if (cu==cv) continue;
+    if (q[u]==q[v]) continue;
     vertices[u] = true;
   }
   return vertices;

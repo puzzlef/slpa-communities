@@ -68,7 +68,7 @@ SlpaResult<K> slpaSeq(const G& x, const vector<K>* q, const SlpaOptions& o, FA f
   uniform_int_distribution<K> dis(0, 65535);
   auto fr = [&]() { return dis(rnd); };
   float t = measureDuration([&]() {
-    if (q) splaInitializeFrom(vcom, x, *q);
+    if (q) slpaInitializeFrom(vcom, x, *q);
     else   slpaInitialize(vcom, x);
     for (l=0; l < min(o.maxIterations, K(LABELS-1));) {
       K n = slpaMoveIteration<STRICT>(vcs, vcout, vcom, x, ++l, fr, fa, fp);
@@ -111,8 +111,7 @@ template <size_t LABELS=SLPA_MEMORY, bool STRICT=false, class G, class K, class 
 inline SlpaResult<K> slpaSeqDynamicDeltaScreening(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<K>* q, const SlpaOptions& o={}) {
   const size_t L = LABELS;
   K S = x.span();
-  const vector<Labelset<K, L>>& vcom = *q;
-  auto vaff = slpaAffectedVerticesDeltaScreening<STRICT>(x, deletions, insertions, vcom);
+  auto vaff = slpaAffectedVerticesDeltaScreening<STRICT>(x, deletions, insertions, *q);
   auto fa   = [&](auto u) { return vaff[u]==true; };
   return slpaSeq<LABELS, STRICT>(x, q, o, fa);
 }
@@ -127,8 +126,7 @@ template <size_t LABELS=SLPA_MEMORY, bool STRICT=false, class G, class K, class 
 inline SlpaResult<K> slpaSeqDynamicFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<K>* q, const SlpaOptions& o={}) {
   const size_t L = LABELS;
   K S = x.span();
-  const vector<Labelset<K, L>>& vcom = *q;
-  auto vaff = slpaAffectedVerticesFrontier(x, deletions, insertions, vcom);
+  auto vaff = slpaAffectedVerticesFrontier(x, deletions, insertions, *q);
   auto fa = [&](auto u) { return vaff[u]==true; };
   auto fp = [&](auto u) { x.forEachEdgeKey(u, [&](auto v) { vaff[v] = true; }); };
   return slpaSeq<LABELS, STRICT>(x, q, o, fa, fp);
