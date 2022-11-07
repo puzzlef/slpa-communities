@@ -41,7 +41,7 @@ K slpaMoveIteration(vector<K>& vcs, vector<V>& vcout, vector<Labelset<K, L>>& vc
     if (!fa(u)) return;
     slpaClearScan(vcs, vcout);
     slpaScanCommunities(vcs, vcout, x, u, vcom, l, fr);
-    vcom[u][l] = slpaChooseCommunity<STRICT>(x, u, vcs, vcout);
+    vcom[u][l] = slpaChooseCommunity<STRICT>(vcs, vcout);
     if (vcom[u][l]!=vcom[u][l-1]) { ++a; fp(u); }
   });
   return a;

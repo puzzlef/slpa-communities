@@ -138,8 +138,8 @@ inline void slpaClearScan(vector<K>& vcs, vector<V>& vcout) {
  * @param vcout total edge weight from vertex u to community C
  * @returns best community
  */
-template <bool STRICT=false, class G, class K, class V>
-inline K slpaChooseCommunity(const G& x, K u, const vector<K>& vcs, const vector<V>& vcout) {
+template <bool STRICT=false, class K, class V>
+inline K slpaChooseCommunity(const vector<K>& vcs, const vector<V>& vcout) {
   K cmax = K();
   V wmax = V();
   for (K c : vcs) {
@@ -228,7 +228,7 @@ auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& d
       if (cu==cv) continue;
       slpaScanCommunity(vcs, vcout, u, v, w, vcom, l, fr);
     }
-    K cl = slpaChooseCommunity<STRICT>(x, u, vcom, vcs, vcout);
+    K cl = slpaChooseCommunity<STRICT>(vcs, vcout);
     K cu = slpaBestCommunity(vcom[u], l);
     if (cl==cu) continue;
     vertices[u]  = true;
