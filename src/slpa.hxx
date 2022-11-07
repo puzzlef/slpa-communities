@@ -168,7 +168,7 @@ inline void slpaSortCommunities(vector<Labelset<K, L>>& vcom, K l) {
 
 
 template <class K, size_t L>
-inline void slpaBestCommunity(const Labelset<K, L>& labs, K l) {
+inline K slpaBestCommunity(const Labelset<K, L>& labs, K l) {
   return most_frequent(labs.begin(), labs.begin()+l);
 }
 
