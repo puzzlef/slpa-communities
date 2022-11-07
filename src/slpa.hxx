@@ -199,7 +199,7 @@ inline vector<K> slpaBestCommunities(const vector<Labelset<K, L>>& vcom, K l) {
  * @param x original graph
  * @param deletions edge deletions for this batch update (undirected, sorted by source vertex id)
  * @param insertions edge insertions for this batch update (undirected, sorted by source vertex id)
- * @param vcom community set each vertex belongs to
+ * @param vcom community set each vertex belongs to (sorted)
  * @param l number of labels available
  * @param fr random number generator
  * @returns flags for each vertex marking whether it is affected
@@ -218,18 +218,17 @@ auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& d
     communities[cv] = true;
   }
   for (size_t i=0; i<insertions.size();) {
-    K u = get<0>(insertions[i]);
+    K u  = get<0>(insertions[i]);
+    K cu = slpaBestCommunity(vcom[u], l);
     slpaClearScan(vcs, vcout);
     for (; i<insertions.size() && get<0>(insertions[i])==u; ++i) {
       K v  = get<1>(insertions[i]);
       V w  = get<2>(insertions[i]);
-      K cu = slpaBestCommunity(vcom[u], l);
       K cv = slpaBestCommunity(vcom[v], l);
       if (cu==cv) continue;
       slpaScanCommunity(vcs, vcout, u, v, w, vcom, l, fr);
     }
     K cl = slpaChooseCommunity<STRICT>(vcs, vcout);
-    K cu = slpaBestCommunity(vcom[u], l);
     if (cl==cu) continue;
     vertices[u]  = true;
     neighbors[u] = true;
@@ -261,13 +260,12 @@ auto slpaAffectedVerticesDeltaScreening(const G& x, const vector<tuple<K, K>>& d
  * @param x original graph
  * @param deletions edge deletions for this batch update (undirected, sorted by source vertex id)
  * @param insertions edge insertions for this batch update (undirected, sorted by source vertex id)
- * @param vcom community set each vertex belongs to
+ * @param vcom community set each vertex belongs to (sorted)
  * @param l number of labels available
- * @param fr random number generator
  * @returns flags for each vertex marking whether it is affected
  */
 template <class FLAG=bool, class G, class K, class V, size_t L, class FR>
-auto slpaAffectedVerticesFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, L>>& vcom, K l, FR fr) {
+auto slpaAffectedVerticesFrontier(const G& x, const vector<tuple<K, K>>& deletions, const vector<tuple<K, K, V>>& insertions, const vector<Labelset<K, L>>& vcom, K l) {
   K S = x.span();
   vector<FLAG> vertices(S);
   for (const auto& [u, v] : deletions) {
