@@ -744,12 +744,11 @@ inline void sortValues(J& x, FL fl) {
 template <class I>
 auto most_frequent(I ib, I ie) {
   using T = typename iterator_traits<I>::value_type;
-  T v = *ib, a = T();
+  T v = T(), a = T();
   size_t m = 0, n = 0;
   for (; ib!=ie; ++ib) {
-    if (*ib==v) ++m;
-    else if (m<=n) continue;
-    a = v;   n = m;
+    if (*ib==v) { ++m; continue; }
+    if (m>n)    { a = v; n = m; }
     v = *ib; m = 1;
   }
   if (m>n) a = v;
