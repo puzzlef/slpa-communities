@@ -1,12 +1,6 @@
-Single-threaded CPU-based Speaker-listener Label Propagation Algorithm ([SLPA]) for
-[community detection].
+Single-threaded CPU-based Speaker-listener Label Propagation Algorithm ([SLPA]) for [community detection].
 
-I was trying out the **Speaker-listener Label Propagation Algorithm (SLPA)** which i
-had implemented yesterday (results out today). This is one of the algorithms
-given in literature review of *LabelRank*. Here each node has a *fixed memory* where
-it remembers all the popular labels that it **listened**. The size of this memory
-is fixed to the *total number of iterations to be performed + 1*. The algorithm is
-as follows.
+I was trying out the **Speaker-listener Label Propagation Algorithm (SLPA)** which i had implemented yesterday (results out today). This is one of the algorithms given in literature review of *LabelRank*. Here each node has a *fixed memory* where it remembers all the popular labels that it **listened**. The size of this memory is fixed to the *total number of iterations to be performed + 1*. The algorithm is as follows.
 
 1. Each vertex is initialized such that it remembers itself as *popular*.
 2. Each neighbor speaks one of the *random labels* in its memory.
@@ -15,23 +9,7 @@ as follows.
 5. I allow *early convergence* if *at least n%* of vertices remember their *previous label*.
 6. For each vertex, i pick the *most popular label* in its memory as its *community*.
 
-Unlike **RAK** (also called **LPA**) and **COPRA**, this is a *randomized*
-*historical-label* based technique. A *random number generator (RNG)* is used by
-each neighbor of a vertex to pick a random label to **speak** from its memory. I
-originally used C++'s *default random engine* (which is probably mersenne
-twister) which seems slow. So i updated it to use a *xorshift32 random engine*.
-The listener vertex listens to all its neigbors, and based on edge weight, picks
-the *most popular label*. In **strict** mode, the listener pick the first *most*
-*popular label* as to record in its memory, and in **non-strict** mode, the
-listener pick randomly one of the most popular labels to record. It records this
-in the *next index* in its memory. The authors of this paper suggest to perform
-a *fixed number of iterations* (which is one less than the space we have
-reserved for storing the labels in the memory of each vertex). However, if the
-latest popular label (for a vertex) is same as the previous one in its memory, i
-consider it as a *sign of convergence*. So, when *n% of vertices* show this sign
-of convergence (**tolerance**), i perform an *early exit*. By default, a
-**tolerance** of `0.05` is used. As we want to find *disjoint communities*, i
-use the most popular label in the memory of each vertex as its final community.
+Unlike **RAK** (also called **LPA**) and **COPRA**, this is a *randomized* *historical-label* based technique. A *random number generator (RNG)* is used by each neighbor of a vertex to pick a random label to **speak** from its memory. I originally used C++'s *default random engine* (which is probably mersenne twister) which seems slow. So i updated it to use a *xorshift32 random engine*. The listener vertex listens to all its neigbors, and based on edge weight, picks the *most popular label*. In **strict** mode, the listener pick the first *most* *popular label* as to record in its memory, and in **non-strict** mode, the listener pick randomly one of the most popular labels to record. It records this in the *next index* in its memory. The authors of this paper suggest to perform a *fixed number of iterations* (which is one less than the space we have reserved for storing the labels in the memory of each vertex). However, if the latest popular label (for a vertex) is same as the previous one in its memory, i consider it as a *sign of convergence*. So, when *n% of vertices* show this sign of convergence (**tolerance**), i perform an *early exit*. By default, a **tolerance** of `0.05` is used. As we want to find *disjoint communities*, i use the most popular label in the memory of each vertex as its final community.
 
 [![](https://i.imgur.com/dq8i8HX.png)][sheetp]
 
@@ -51,19 +29,14 @@ The experiment is run with **labels** (memory space of each vertex) ranging from
 <br>
 <br>
 
-It appears that *increasing* the number of **labels** *increases the time required for*
-*completion* (as expected), and also *increases the final modularity*. However, on
-graphs `soc-Slashdot*` modularity seems to decrease with increasing labels.
+It appears that *increasing* the number of **labels** *increases the time required for* *completion* (as expected), and also *increases the final modularity*. However, on graphs `soc-Slashdot*` modularity seems to decrease with increasing labels.
 
 [![](https://i.imgur.com/9CYJIeF.png)][sheetp]
 
 <br>
 <br>
 
-It is also observed that the **strict** variant is *slightly faster* than the
-**non-strict** one, but achieves *similar modularity*. On *road networks* it seems
-**strict** approach obtains *lower modularity*, and on other types of graphs, **strict**
-approach achieves *higher modularity*.
+It is also observed that the **strict** variant is *slightly faster* than the **non-strict** one, but achieves *similar modularity*. On *road networks* it seems **strict** approach obtains *lower modularity*, and on other types of graphs, **strict** approach achieves *higher modularity*.
 
 [![](https://i.imgur.com/P0WfY3A.png)][sheetp]
 
@@ -72,16 +45,9 @@ approach achieves *higher modularity*.
 <br>
 <br>
 
-However, its seems that this method of community detection does not provide a
-good return on investment (it takes longer but does not achieve great
-modularity). I do not perform any post-processing of communities as of now (such
-as splitting disconnected communities).
+However, its seems that this method of community detection does not provide a good return on investment (it takes longer but does not achieve great modularity). I do not perform any post-processing of communities as of now (such as splitting disconnected communities).
 
-All outputs are saved in a [gist] and a small part of the output is listed here.
-Some [charts] are also included below, generated from [sheets]. The input data
-used for this experiment is available from the [SuiteSparse Matrix Collection].
-This experiment was done with guidance from [Prof. Kishore Kothapalli] and
-[Prof. Dip Sankar Banerjee].
+All outputs are saved in a [gist] and a small part of the output is listed here. Some [charts] are also included below, generated from [sheets]. The input data used for this experiment is available from the [SuiteSparse Matrix Collection]. This experiment was done with guidance from [Prof. Kishore Kothapalli] and [Prof. Dip Sankar Banerjee].
 
 
 [SLPA]: https://arxiv.org/abs/1202.2465
@@ -138,6 +104,7 @@ $ ...
 
 [![](https://i.imgur.com/1dNrrfK.jpg)](https://www.youtube.com/watch?v=3X85rHyfg0k)<br>
 [![ORG](https://img.shields.io/badge/org-puzzlef-green?logo=Org)](https://puzzlef.github.io)
+[![DOI](https://zenodo.org/badge/562802206.svg)](https://zenodo.org/badge/latestdoi/562802206)
 
 
 [gist]: https://gist.github.com/wolfram77/8730879a0220d86091fc8e7e8e4f3b5d
