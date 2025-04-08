@@ -105,7 +105,7 @@ $ ...
 [![](https://i.imgur.com/1dNrrfK.jpg)](https://www.youtube.com/watch?v=3X85rHyfg0k)<br>
 [![ORG](https://img.shields.io/badge/org-puzzlef-green?logo=Org)](https://puzzlef.github.io)
 [![DOI](https://zenodo.org/badge/562802206.svg)](https://zenodo.org/badge/latestdoi/562802206)
-
+![](https://ga-beacon.deno.dev/G-KD28SG54JQ:hbAybl6nQFOtmVxW4if3xw/github.com/puzzlef/slpa-communities)
 
 [gist]: https://gist.github.com/wolfram77/8730879a0220d86091fc8e7e8e4f3b5d
 [charts]: https://imgur.com/a/WV5T0cQ
